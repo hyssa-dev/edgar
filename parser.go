@@ -17,19 +17,19 @@ import (
 func parseCikAndDocID(url string) (string, string) {
 	var s1 string
 	var d1, d2, d3, d4 int
-	fmt.Sscanf(url, "/cgi-bin/viewer?action=view&cik=%d&accession_number=%d-%d-%d%s", &d1, &d2, &d3, &d4, &s1)
+	_, _ = fmt.Sscanf(url, "/cgi-bin/viewer?action=view&cik=%d&accession_number=%d-%d-%d%s", &d1, &d2, &d3, &d4, &s1)
 	cik := fmt.Sprintf("%d", d1)
 	an := fmt.Sprintf("%010d%d%d", d2, d3, d4)
 	return cik, an
 }
 
 /*
-  This is the parsing of query page where we get the list of filings of a given types
-  ex: https://www.sec.gov/cgi-bin/browse-edgar?CIK=AAPL&owner=exclude&action=getcompany&type=10-Q&count=1&dateb=
-  Assumptions of the parser:
-  - There is interactive data available and there is a button that allows the user to click it
-  - Since it is a link the tag will be a hyperlink with a button with the id=interactiveDataBtn
-  - The actual link is the href attribute in the "a" token just before the id attribute
+This is the parsing of query page where we get the list of filings of a given types
+ex: https://www.sec.gov/cgi-bin/browse-edgar?CIK=AAPL&owner=exclude&action=getcompany&type=10-Q&count=1&dateb=
+Assumptions of the parser:
+- There is interactive data available and there is a button that allows the user to click it
+- Since it is a link the tag will be a hyperlink with a button with the id=interactiveDataBtn
+- The actual link is the href attribute in the "a" token just before the id attribute
 */
 func queryPageParser(page io.Reader, docType FilingType) map[string]string {
 
@@ -76,21 +76,21 @@ func cikPageParser(page io.Reader) (string, error) {
 }
 
 /*
-  The filing page parser
-  - The top of the page has a list of reports.
-  - Get all the reports (link to all the reports) and put it in an array
-  - The Accordian on the side of the page identifies what each report is
-  - Get the text of the accordian and map the type of the report to the report
-  - Create a map of the report to report link
+The filing page parser
+- The top of the page has a list of reports.
+- Get all the reports (link to all the reports) and put it in an array
+- The Accordian on the side of the page identifies what each report is
+- Get the text of the accordian and map the type of the report to the report
+- Create a map of the report to report link
 */
-func filingPageParser(page io.Reader, fileType FilingType) map[filingDocType]string {
+func filingPageParser(page io.Reader, _ FilingType) map[filingDocType]string {
 	var filingLinks []string
 	r := bufio.NewReader(page)
 	s, e := r.ReadString('\n')
 
 	for e == nil {
 		//Get the number of reports available
-		if strings.Contains(s, "var reports") == true {
+		if strings.Contains(s, "var reports") {
 			s1 := strings.Split(s, "(")
 			s2 := strings.Split(s1[1], ")")
 			cnt, _ := strconv.Atoi(s2[0])
@@ -347,8 +347,8 @@ func finReportParser(page io.Reader, fr *financialReport, t filingDocType) (*fin
 }
 
 // parseAllReports gets all the reports filed under a given account normalizeNumber
+//nolint:unused // It is used in the parser
 func parseAllReports(cik string, an string) []int {
-
 	var reports []int
 	url := "https://www.sec.gov/Archives/edgar/data/" + cik + "/" + an + "/"
 	page := getPage(url)
@@ -379,7 +379,7 @@ func parseMappedReports(docs map[filingDocType]string, docType FilingType) (*fin
 			defer wg.Done()
 			page := getPage(url)
 			if page != nil {
-				finReportParser(page, fr, t)
+				_, _ = finReportParser(page, fr, t)
 			}
 		}(baseURL+url, fr, t)
 	}

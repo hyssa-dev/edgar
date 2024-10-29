@@ -24,3 +24,12 @@ A user will be given a company folder with the filings (retrieved ones) for ever
 # Filing
 Filing is an interface to get filing data related to a specific filing. The user uses this interface to extract required data. The Filing is retrieved from the company folder as needed. An error is returned if the data was unavailable.
  
+# Installing the Package
+To install the Edgar package, run the following command:
+```bash
+go get github.com/hyssa-dev/edgar
+```
+
+```go
+
+fetcher := edgar.NewFilingFetcher()

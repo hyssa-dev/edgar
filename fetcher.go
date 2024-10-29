@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 )
 
 type fetcher struct {
@@ -35,7 +34,7 @@ func (f *fetcher) CompanyFolder(
 func (f *fetcher) CreateFolder(
 	r io.Reader,
 	fileTypes ...FilingType) (CompanyFolder, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

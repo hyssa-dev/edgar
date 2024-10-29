@@ -8,10 +8,18 @@ import (
 )
 
 var (
-	baseURL   = "https://www.sec.gov/"
-	cikURL    = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&output=xml&CIK=%s"
-	queryURL  = "cgi-bin/browse-edgar?action=getcompany&CIK=%s&type=%s&dateb=&owner=exclude&count=10"
-	searchURL = baseURL + queryURL
+	baseURL              = "https://www.sec.gov/"
+	cikURL               = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&output=xml&CIK=%s"
+	queryURL             = "cgi-bin/browse-edgar?action=getcompany&CIK=%s&type=%s&dateb=&owner=exclude&count=10"
+	searchURL            = baseURL + queryURL
+	acceptEncodingHeader = "Accept-Encoding"
+	acceptEncodingValue  = "deflate, br, zstd"
+	userAgentHeader      = "User-Agent"
+	userAgentValue       = "CompanyName company@vgmail.com"
+	hostHeader           = "Host"
+	hostValue            = "www.sec.gov"
+	acceptHeader         = "Accept"
+	acceptValue          = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
 )
 
 func createQueryURL(symbol string, docType FilingType) string {
@@ -19,7 +27,19 @@ func createQueryURL(symbol string, docType FilingType) string {
 }
 
 func getPage(url string) io.ReadCloser {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Fatal("Query to SEC page ", url, "failed: ", err)
+		return nil
+	}
+
+	req.Header.Add(userAgentHeader, userAgentValue)
+	req.Header.Add(acceptEncodingHeader, acceptEncodingValue)
+	req.Header.Add(hostHeader, hostValue)
+	req.Header.Add(acceptHeader, acceptValue)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal("Query to SEC page ", url, "failed: ", err)
 		return nil
@@ -51,8 +71,8 @@ func getFilingLinks(ticker string, fileType FilingType) map[string]string {
 
 }
 
-//Get all the docs pages based on the filing type
-//Returns a map:
+// Get all the docs pages based on the filing type
+// Returns a map:
 // key=Document type ex.Cash flow statement
 // Value = link to that that sheet
 func getFilingDocs(url string, fileType FilingType) map[filingDocType]string {

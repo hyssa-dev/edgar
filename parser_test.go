@@ -2,7 +2,8 @@ package edgar
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+
 	"os"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ func TestParsingXBRLDef(t *testing.T) {
 		return
 	}
 	if len(data) != 3 {
-		t.Error("Parser returned unexpected number of data items: " + string(len(data)))
+		t.Errorf("Parser returned unexpected number of data items: %d", len(data))
 		return
 	}
 	if data[0] != "defref_us-gaap_StockholdersEquity" {
@@ -77,7 +78,7 @@ func TestParsingNumInLink(t *testing.T) {
 		return
 	}
 	if len(data) != 2 {
-		t.Error("Parser returned unexpected number of data items: " + string(len(data)))
+		t.Errorf("Parser returned unexpected number of data items: %d", len(data))
 		return
 	}
 	if data[0] != "defref_dei_EntityCommonStockSharesOutstanding" {
@@ -586,7 +587,7 @@ func SkipTestFinReportMarshal(t *testing.T) {
 		t.Error("Error generating the JSON document for financial report")
 	}
 	f, _ = os.Open("samples/sample_10K_marshal.json")
-	b, _ := ioutil.ReadAll(f)
+	b, _ := io.ReadAll(f)
 	f.Close()
 
 	//There is an extra byte at the end of the save file that needs to be
@@ -606,7 +607,7 @@ func SkipTestFolderReader(t *testing.T) {
 	}
 	f.Close()
 	f, _ = os.Open("samples/sample_folder.json")
-	b, _ := ioutil.ReadAll(f)
+	b, _ := io.ReadAll(f)
 	f.Close()
 	//There is an extra byte at the end of the save file that needs to be
 	//eliminated to avoid a mismatch
@@ -630,11 +631,11 @@ func SkipTestFolderWriter(t *testing.T) {
 	files := c.AvailableFilings(FilingType10K)
 	for _, val := range files {
 		if val.Year() == 2018 || val.Year() == 2017 {
-			c.Filing(FilingType10K, val)
+			_, _ = c.Filing(FilingType10K, val)
 		}
 	}
 	f, _ := os.Open("samples/sample_writer.json")
-	b, _ := ioutil.ReadAll(f)
+	b, _ := io.ReadAll(f)
 	f.Close()
 	//There is an extra byte at the end of the save file that needs to be
 	//eliminated to avoid a mismatch

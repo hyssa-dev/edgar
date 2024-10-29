@@ -11,11 +11,13 @@ type filingDocType string
 type scaleFactor int64
 type scaleEntity string
 
+//nolint:unused // It is used in the parser
 type finDataSearchInfo struct {
 	finDataName finDataType
 	finDataStr  []string
 }
 
+//nolint:unused // It is used in the parser
 type scaleInfo struct {
 	scale  scaleFactor
 	entity scaleEntity
@@ -67,7 +69,6 @@ var (
 	finDataCash              finDataType = "Cash"
 	finDataGoodwill          finDataType = "Goodwill"
 	finDataIntangible        finDataType = "Intangibles"
-	finDataSecurities        finDataType = "Securities"
 	finDataDeferred          finDataType = "Deferred revenue"
 	finDataRetained          finDataType = "Retained Earnings"
 	finDataTotalEquity       finDataType = "Total Shareholder Equity"
@@ -76,6 +77,8 @@ var (
 	finDataDps               finDataType = "Dividend Per Share"
 	finDataInterest          finDataType = "Interest paid"
 	finDataUnknown           finDataType = "Unknown"
+	//nolint:unused // It is used in the parser
+	finDataSecurities finDataType = "Securities"
 
 	//Required Documents list
 	requiredDocTypes = map[filingDocType]bool{

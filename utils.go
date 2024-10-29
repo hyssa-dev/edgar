@@ -112,6 +112,7 @@ func setCollectedData(data interface{}, fieldNum int) {
 	}
 }
 
+//nolint:unused // It is used in the parser
 func clearCollectedData(data interface{}, fieldNum int) {
 	t := reflect.TypeOf(data)
 	v := reflect.ValueOf(data)
