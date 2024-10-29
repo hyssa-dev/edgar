@@ -1,4 +1,4 @@
-package: github.com/palafrank/edgar
+package: github.com/hyssa-dev/edgar
 import:
 - package: golang.org/x/net
   subpackages:
