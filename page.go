@@ -75,7 +75,7 @@ func getFilingLinks(ticker string, fileType FilingType) map[string]string {
 // Returns a map:
 // key=Document type ex.Cash flow statement
 // Value = link to that that sheet
-func getFilingDocs(url string, fileType FilingType) map[filingDocType]string {
+func getFilingDocs(url string, fileType FilingType) map[string]string {
 	url = baseURL + url
 	resp := getPage(url)
 	if resp == nil {
