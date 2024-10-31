@@ -8,8 +8,8 @@ import (
 
 type finDataType string
 type filingDocType string
-type scaleFactor int64
-type scaleEntity string
+type unit int64
+type unitEntity string
 
 //nolint:unused // It is used in the parser
 type finDataSearchInfo struct {
@@ -19,8 +19,8 @@ type finDataSearchInfo struct {
 
 //nolint:unused // It is used in the parser
 type scaleInfo struct {
-	scale  scaleFactor
-	entity scaleEntity
+	scale  unit
+	entity unitEntity
 }
 
 var (
@@ -29,69 +29,52 @@ var (
 	thresholdYear = 2012
 
 	//Document types
-	filingDocOps      filingDocType = "Operations"
-	filingDocInc      filingDocType = "Income"
-	filingDocBS       filingDocType = "Assets"
-	filingDocCF       filingDocType = "Cash Flow"
-	filingDocEN       filingDocType = "Entity Info"
-	filingDocEPSNotes filingDocType = "Notes on EPS"
-	filingDocEquity   filingDocType = "Notes on Equity"
-	filingDocDebt     filingDocType = "Notes on Debt"
-	filingDocIg       filingDocType = "Ignore"
+	// filingDocOps      filingDocType = "Operations"
+	// filingDocInc      filingDocType = "Income"
+	// filingDocBS       filingDocType = "Assets"
+	// filingDocCF       filingDocType = "Cash Flow"
+	// filingDocEN       filingDocType = "Entity Info"
+	// filingDocEPSNotes filingDocType = "Notes on EPS"
+	// filingDocEquity   filingDocType = "Notes on Equity"
+	// filingDocDebt     filingDocType = "Notes on Debt"
+	// filingDocPare     filingDocType = "Parenthetical"
+	// filingDocIg       filingDocType = "Ignore"
+	// filingDocTables   filingDocType = "Tables"
+	// filingDocDetails  filingDocType = "Details"
+	// filingDocPolicies filingDocType = "Policies"
 
-	//Scale of the money in the filing
-	scaleNone     scaleFactor = 1
-	scaleThousand             = 1000 * scaleNone
-	scaleMillion              = 1000 * scaleThousand
-	scaleBillion              = 1000 * scaleMillion
+	//Unit of the money in the filing
+	unitNone     unit = 1
+	unitThousand      = 1000 * unitNone
+	unitMillion       = 1000 * unitThousand
+	unitBillion       = 1000 * unitMillion
 
-	// Scaling entities in filings
-	scaleEntityShares   scaleEntity = "Shares"
-	scaleEntityMoney    scaleEntity = "Money"
-	scaleEntityPerShare scaleEntity = "PerShare"
+	// Unit entities in filings
+	unitEntityShares   unitEntity = "Shares"
+	unitEntityMoney    unitEntity = "Money"
+	unitEntityPerShare unitEntity = "PerShare"
 
 	//Types of financial data collected
-	finDataSharesOutstanding finDataType = "Shares Outstanding"
-	finDataRevenue           finDataType = "Revenue"
-	finDataCostOfRevenue     finDataType = "Cost Of Revenue"
-	finDataGrossMargin       finDataType = "Gross Margin"
-	finDataOpsIncome         finDataType = "Operational Income"
-	finDataOpsExpense        finDataType = "Operational Expense"
-	finDataNetIncome         finDataType = "Net Income"
-	finDataOpCashFlow        finDataType = "Operating Cash Flow"
-	finDataCapEx             finDataType = "Capital Expenditure"
-	finDataLDebt             finDataType = "Long-Term debt"
-	finDataSDebt             finDataType = "Short-Term debt"
-	finDataCLiab             finDataType = "Current Liabilities"
-	finDataCAssets           finDataType = "Current Assets"
-	finDataAssets            finDataType = "Total Assets"
-	finDataLiab              finDataType = "Total Liabilities"
-	finDataCash              finDataType = "Cash"
-	finDataGoodwill          finDataType = "Goodwill"
-	finDataIntangible        finDataType = "Intangibles"
-	finDataDeferred          finDataType = "Deferred revenue"
-	finDataRetained          finDataType = "Retained Earnings"
-	finDataTotalEquity       finDataType = "Total Shareholder Equity"
-	finDataDividend          finDataType = "Dividends paid"
-	finDataWAShares          finDataType = "Weighted Average Share Count"
-	finDataDps               finDataType = "Dividend Per Share"
-	finDataInterest          finDataType = "Interest paid"
-	finDataUnknown           finDataType = "Unknown"
+	// finDataSharesOutstanding finDataType = "Shares Outstanding"
+	// finDataGrossMargin       finDataType = "Gross Margin"
+	// finDataOpsIncome         finDataType = "Operational Income"
+	// finDataOpsExpense        finDataType = "Operational Expense"
+	// finDataNetIncome         finDataType = "Net Income"
+	// finDataOpCashFlow        finDataType = "Operating Cash Flow"
+	// finDataCapEx             finDataType = "Capital Expenditure"
+
+	// finDataTotalEquity       finDataType = "Total Shareholder Equity"
+	// finDataDividend          finDataType = "Dividends paid"
+	// finDataWAShares          finDataType = "Weighted Average Share Count"
+	// finDataDps               finDataType = "Dividend Per Share"
+	// finDataInterest          finDataType = "Interest paid"
+	// finDataUnknown           finDataType = "Unknown"
 	//nolint:unused // It is used in the parser
 	finDataSecurities finDataType = "Securities"
 
-	//Required Documents list
-	requiredDocTypes = map[filingDocType]bool{
-		filingDocOps: true,
-		filingDocInc: true,
-		filingDocBS:  true,
-		filingDocCF:  true,
-		filingDocEN:  true,
-	}
-
 	// Strict Data to doc mapping
-	strictDataToDocMap = map[finDataType]filingDocType{
-		finDataCash: filingDocBS,
+	strictDataToDocMap = map[string]string{
+		"Cash": "Assets",
 	}
 )
 
@@ -123,77 +106,77 @@ func generateData(fin *financialReport, name string) float64 {
 	return 0
 }
 
-func validateFinancialReport(fin *financialReport) error {
+// NEED TO REALIZE THIS FUNCTION
+// func validateFinancialReport(fin *financialReport) error {
+// 	validate := func(data interface{}) error {
+// 		var err string
+// 		t := reflect.TypeOf(data)
+// 		v := reflect.ValueOf(data)
+// 		if t.Kind() == reflect.Ptr {
+// 			t = t.Elem()
+// 			v = v.Elem()
+// 		}
+// 		for i := 0; i < t.NumField(); i++ {
+// 			if t.Field(i).Type.Kind() != reflect.Float64 {
+// 				continue
+// 			}
+// 			tag, ok := t.Field(i).Tag.Lookup("required")
+// 			if !isCollectedDataSet(data, t.Field(i).Name) && (ok && tag == "true") {
+// 				tag, ok = t.Field(i).Tag.Lookup("generate")
+// 				if ok && tag == "true" {
+// 					num := generateData(fin, t.Field(i).Name)
+// 					if num == 0 {
+// 						err += t.Field(i).Name + ","
+// 					} else {
+// 						v.Field(i).SetFloat(num)
+// 						setCollectedData(data, i)
+// 					}
+// 				} else {
+// 					err += t.Field(i).Name + ","
+// 				}
+// 			}
+// 		}
+// 		if len(err) > 0 {
+// 			return errors.New("[" + err + "]")
+// 		}
+// 		return nil
+// 	}
 
-	validate := func(data interface{}) error {
-		var err string
-		t := reflect.TypeOf(data)
-		v := reflect.ValueOf(data)
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
-			v = v.Elem()
-		}
-		for i := 0; i < t.NumField(); i++ {
-			if t.Field(i).Type.Kind() != reflect.Float64 {
-				continue
-			}
-			tag, ok := t.Field(i).Tag.Lookup("required")
-			if !isCollectedDataSet(data, t.Field(i).Name) && (ok && tag == "true") {
-				tag, ok = t.Field(i).Tag.Lookup("generate")
-				if ok && tag == "true" {
-					num := generateData(fin, t.Field(i).Name)
-					if num == 0 {
-						err += t.Field(i).Name + ","
-					} else {
-						v.Field(i).SetFloat(num)
-						setCollectedData(data, i)
-					}
-				} else {
-					err += t.Field(i).Name + ","
-				}
-			}
-		}
-		if len(err) > 0 {
-			return errors.New("[" + err + "]")
-		}
-		return nil
-	}
+// 	// Now make sure the scale factors make sense
+// 	if !isSameScale(fin.Entity.ShareCount, fin.Ops.WAShares) {
+// 		//somethings wrong. Override with Share count
+// 		fin.Ops.WAShares = fin.Entity.ShareCount
+// 	}
 
-	// Now make sure the scale factors make sense
-	if !isSameScale(fin.Entity.ShareCount, fin.Ops.WAShares) {
-		//somethings wrong. Override with Share count
-		fin.Ops.WAShares = fin.Entity.ShareCount
-	}
+// 	var ret string
+// 	if err := validate(fin.Bs); err != nil {
+// 		ret = ret + "Missing fields in " + string(filingDocBS) + err.Error() + "\n"
+// 	}
+// 	if err := validate(fin.Entity); err != nil {
+// 		ret = ret + "Missing fields in " + string(filingDocEN) + err.Error() + "\n"
+// 	}
+// 	if err := validate(fin.Cf); err != nil {
+// 		ret = ret + "Missing fields in " + string(filingDocCF) + err.Error() + "\n"
+// 	}
+// 	if err := validate(fin.Ops); err != nil {
+// 		ret = ret + "Missing fields in " + string(filingDocOps) + err.Error() + "\n"
+// 	}
 
-	var ret string
-	if err := validate(fin.Bs); err != nil {
-		ret = ret + "Missing fields in " + string(filingDocBS) + err.Error() + "\n"
-	}
-	if err := validate(fin.Entity); err != nil {
-		ret = ret + "Missing fields in " + string(filingDocEN) + err.Error() + "\n"
-	}
-	if err := validate(fin.Cf); err != nil {
-		ret = ret + "Missing fields in " + string(filingDocCF) + err.Error() + "\n"
-	}
-	if err := validate(fin.Ops); err != nil {
-		ret = ret + "Missing fields in " + string(filingDocOps) + err.Error() + "\n"
-	}
-
-	if len(ret) > 0 {
-		return errors.New(ret)
-	}
-	return nil
-}
+// 	if len(ret) > 0 {
+// 		return errors.New(ret)
+// 	}
+// 	return nil
+// }
 
 func setData(fr *financialReport,
-	finType finDataType,
+	finType string,
 	val string,
-	scale map[scaleEntity]scaleFactor, t filingDocType) error {
+	scale map[unitEntity]unit, docType string) error {
 
 	setter := func(data interface{},
-		finType finDataType,
+		finType string,
 		val string,
-		scale map[scaleEntity]scaleFactor) error {
+		scale map[unitEntity]unit) error {
 
 		t := reflect.TypeOf(data)
 		v := reflect.ValueOf(data)
@@ -212,7 +195,7 @@ func setData(fr *financialReport,
 					}
 					tag, ok := t.Field(i).Tag.Lookup("entity")
 					if ok {
-						factor, o := scale[scaleEntity(tag)]
+						factor, o := scale[unitEntity(tag)]
 						if o {
 							num *= float64(factor)
 						}
@@ -230,7 +213,7 @@ func setData(fr *financialReport,
 
 	// If there is a strict mapping collect only for the mapped document
 	if fileType, ok := strictDataToDocMap[finType]; ok {
-		if t != fileType {
+		if docType != fileType {
 			return nil
 		}
 	}
