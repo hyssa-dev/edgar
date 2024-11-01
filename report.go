@@ -5,12 +5,14 @@ import (
 	"log"
 )
 
-type financialReport struct {
-	DocType FilingType  `json:"Filing Type"`
-	Entity  *entityData `json:"Entity Information"`
-	Ops     *opsData    `json:"Operational Information"`
-	Bs      *bsData     `json:"Balance Sheet Information"`
-	Cf      *cfData     `json:"Cash Flow Information"`
+type FinancialReport struct {
+	Title     string      `json:"Title"`
+	DocValues DocValues   `json:"DocValue"`
+	DocType   FilingType  `json:"Filing Type"`
+	Entity    *entityData `json:"Entity Information"`
+	Ops       *opsData    `json:"Operational Information"`
+	Bs        *bsData     `json:"Balance Sheet Information"`
+	Cf        *cfData     `json:"Cash Flow Information"`
 }
 
 type entityData struct {
@@ -55,9 +57,15 @@ type bsData struct {
 	Liab          float64 `json:"Total Liabilities" required:"true" entity:"Money" bit:"12"`
 }
 
-func newFinancialReport(docType FilingType) *financialReport {
-	fr := new(financialReport)
+func newFinancialReport(docType FilingType) *FinancialReport {
+	fr := new(FinancialReport)
 	fr.DocType = docType
+	fr.DocValues = DocValues{
+		Periods:  []string{},
+		Section:  []Section{},
+		EndDates: []string{},
+		Scales:   map[unitEntity]unit{},
+	}
 	fr.Bs = new(bsData)
 	fr.Cf = new(cfData)
 	fr.Entity = new(entityData)
@@ -65,7 +73,7 @@ func newFinancialReport(docType FilingType) *financialReport {
 	return fr
 }
 
-func (f financialReport) String() string {
+func (f FinancialReport) String() string {
 	data, err := json.MarshalIndent(f, "", "    ")
 	if err != nil {
 		log.Fatal("Error marshaling financial data")

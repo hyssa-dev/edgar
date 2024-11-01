@@ -1,6 +1,7 @@
 package edgar
 
 import (
+	"errors"
 	"io"
 	"log"
 	"strconv"
@@ -34,36 +35,35 @@ func getMenuCategory(menuCategories []MenuCategory, data string) string {
 }
 
 // This function returns the filing type of the document(by the menu category)
-func lookupDocType(data string, menuCategory string, categoryDocs map[string]Documents) string {
+func lookupDocType(data string, menuCategory string, categoryDocs map[string][]Document) (Document, error) {
 	data = strings.ToUpper(data)
 
 	if len(categoryDocs) == 0 {
 		categoryDocs = CategoryDocs
 	}
 	docs := categoryDocs[menuCategory]
-
-	for _, doc := range docs.Docs {
+	for _, doc := range docs {
 		if containsAllElements(data, doc.Keys) && nonContainsAllElements(data, doc.NotKeys) {
-			return doc.Type
+			return doc, nil
 		}
 	}
 
-	return unknownMenuCat
+	return Document{}, errors.New("not found")
 }
 
 // NEED TO REILIZE THIS FUNCTION: TOOD
-func getMissingDocs(urlByDocType map[string]string, requiredDocs Documents) string {
-	if len(requiredDocs.Docs) == 0 {
+func getMissingDocs(urlByDocType map[string][]Document, requiredDocs []Document) string {
+	if len(requiredDocs) == 0 {
 		requiredDocs = RequiredDocs
 	}
 	// fmt.Println("urlByDocType", urlByDocType)
 	// fmt.Println()
 	// fmt.Println("requiredDocs", requiredDocs)
-	if len(urlByDocType) >= len(requiredDocs.Docs) {
+	if len(urlByDocType) >= len(requiredDocs) {
 		return ""
 	}
 	var diff []string
-	for _, doc := range requiredDocs.Docs {
+	for _, doc := range requiredDocs {
 		if _, ok := urlByDocType[doc.Type]; !ok {
 			switch doc.Type {
 			case "Operations":
@@ -92,11 +92,11 @@ func getMissingDocs(urlByDocType map[string]string, requiredDocs Documents) stri
 	return ret
 }
 
-func mapReports(page io.Reader, filingLinks []string) map[string]string {
+func mapReports(page io.Reader, filingLinks []string) map[string][]Document {
 
 	menuCategory := unknownMenuCat
 
-	urlByDocType := make(map[string]string)
+	urlByDocType := make(map[string][]Document)
 
 	z := html.NewTokenizer(page)
 	tt := z.Next()
@@ -114,15 +114,12 @@ loop:
 						break
 					}
 					token = z.Token()
-					docType := lookupDocType(token.String(), menuCategory, map[string]Documents{})
-					if docType != unknowdDocType {
-						//Get the report number
-						_, ok := urlByDocType[docType]
-						if !ok {
-							// Set the report link by doc type
-							urlByDocType[docType] = filingLinks[reportNum-1]
-						}
+					doc, errDoc := lookupDocType(token.String(), menuCategory, map[string][]Document{})
+					if errDoc != nil {
+						doc.Type = unknowdDocType
 					}
+					doc.URL = filingLinks[reportNum-1]
+					urlByDocType[doc.Type] = append(urlByDocType[doc.Type], doc)
 				} else if a.Key == "id" && strings.Contains(a.Val, "menu_cat") {
 					// Set the menu level
 					for !(token.Data == "a" && token.Type == html.EndTagToken) {
@@ -143,7 +140,7 @@ loop:
 		}
 		tt = z.Next()
 	}
-	ret := getMissingDocs(urlByDocType, Documents{})
+	ret := getMissingDocs(urlByDocType, []Document{})
 	if ret != "" {
 		log.Println("Did not find the following filing documents: " + ret)
 	}

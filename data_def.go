@@ -78,7 +78,7 @@ var (
 	}
 )
 
-func generateData(fin *financialReport, name string) float64 {
+func generateData(fin *FinancialReport, name string) float64 {
 	log.Println("Generating data: ", name)
 	switch name {
 	case "GrossMargin":
@@ -107,7 +107,7 @@ func generateData(fin *financialReport, name string) float64 {
 }
 
 // NEED TO REALIZE THIS FUNCTION
-// func validateFinancialReport(fin *financialReport) error {
+// func validateFinancialReport(fin *FinancialReport) error {
 // 	validate := func(data interface{}) error {
 // 		var err string
 // 		t := reflect.TypeOf(data)
@@ -168,7 +168,7 @@ func generateData(fin *financialReport, name string) float64 {
 // 	return nil
 // }
 
-func setData(fr *financialReport,
+func setData(fr *FinancialReport,
 	finType string,
 	val string,
 	scale map[unitEntity]unit, docType string) error {

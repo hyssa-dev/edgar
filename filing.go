@@ -8,13 +8,7 @@ import (
 	"time"
 )
 
-type filing struct {
-	Company string           `json:"Company"`
-	Date    Timestamp        `json:"Report date"`
-	FinData *financialReport `json:"Financial Data"`
-}
-
-func (f filing) String() string {
+func (f Report) String() string {
 	data, err := json.MarshalIndent(f, "", "    ")
 	if err != nil {
 		log.Fatal("Error marshaling Filing data")
@@ -22,26 +16,26 @@ func (f filing) String() string {
 	return string(data)
 }
 
-func (f *filing) Ticker() string {
+func (f *Report) Ticker() string {
 	return f.Company
 }
 
-func (f *filing) FiledOn() time.Time {
+func (f *Report) FiledOn() time.Time {
 	return time.Time(f.Date)
 }
 
-func (f *filing) filingErrorString() string {
+func (f *Report) filingErrorString() string {
 	return "Filing information has not been collected for " + getDateString(f.FiledOn()) + " "
 }
 
-func (f *filing) Type() (FilingType, error) {
+func (f *Report) Type() (FilingType, error) {
 	if f.FinData != nil {
 		return f.FinData.DocType, nil
 	}
 	return "", errors.New(f.filingErrorString())
 }
 
-func (f *filing) ShareCount() (float64, error) {
+func (f *Report) ShareCount() (float64, error) {
 	if f.FinData != nil && f.FinData.Entity != nil {
 		if isCollectedDataSet(f.FinData.Entity, "ShareCount") {
 			return f.FinData.Entity.ShareCount, nil
@@ -50,7 +44,7 @@ func (f *filing) ShareCount() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Share Count")
 }
 
-func (f *filing) Revenue() (float64, error) {
+func (f *Report) Revenue() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "Revenue") {
 			return f.FinData.Ops.Revenue, nil
@@ -59,7 +53,7 @@ func (f *filing) Revenue() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Revenue")
 }
 
-func (f *filing) CostOfRevenue() (float64, error) {
+func (f *Report) CostOfRevenue() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "CostOfSales") {
 			return f.FinData.Ops.CostOfSales, nil
@@ -68,7 +62,7 @@ func (f *filing) CostOfRevenue() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Cost of Revenue")
 }
 
-func (f *filing) GrossMargin() (float64, error) {
+func (f *Report) GrossMargin() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "GrossMargin") {
 			return f.FinData.Ops.GrossMargin, nil
@@ -77,7 +71,7 @@ func (f *filing) GrossMargin() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Gross Margin")
 }
 
-func (f *filing) OperatingIncome() (float64, error) {
+func (f *Report) OperatingIncome() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "OpIncome") {
 			return f.FinData.Ops.OpIncome, nil
@@ -86,7 +80,7 @@ func (f *filing) OperatingIncome() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Operating Income")
 }
 
-func (f *filing) OperatingExpense() (float64, error) {
+func (f *Report) OperatingExpense() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "OpExpense") {
 			return f.FinData.Ops.OpExpense, nil
@@ -95,7 +89,7 @@ func (f *filing) OperatingExpense() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Operating Expense")
 }
 
-func (f *filing) NetIncome() (float64, error) {
+func (f *Report) NetIncome() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "NetIncome") {
 			return f.FinData.Ops.NetIncome, nil
@@ -104,7 +98,7 @@ func (f *filing) NetIncome() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Net Income")
 }
 
-func (f *filing) TotalEquity() (float64, error) {
+func (f *Report) TotalEquity() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Equity") {
 			return f.FinData.Bs.Equity, nil
@@ -113,7 +107,7 @@ func (f *filing) TotalEquity() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Total Equity")
 }
 
-func (f *filing) ShortTermDebt() (float64, error) {
+func (f *Report) ShortTermDebt() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "SDebt") {
 			return f.FinData.Bs.SDebt, nil
@@ -122,7 +116,7 @@ func (f *filing) ShortTermDebt() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Short Term Debt")
 }
 
-func (f *filing) LongTermDebt() (float64, error) {
+func (f *Report) LongTermDebt() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "LDebt") {
 			return f.FinData.Bs.LDebt, nil
@@ -131,7 +125,7 @@ func (f *filing) LongTermDebt() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Long Term Debt")
 }
 
-func (f *filing) CurrentLiabilities() (float64, error) {
+func (f *Report) CurrentLiabilities() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "CLiab") {
 			return f.FinData.Bs.CLiab, nil
@@ -140,7 +134,7 @@ func (f *filing) CurrentLiabilities() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Current Liabilities")
 }
 
-func (f *filing) CurrentAssets() (float64, error) {
+func (f *Report) CurrentAssets() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "CAssets") {
 			return f.FinData.Bs.CAssets, nil
@@ -149,7 +143,7 @@ func (f *filing) CurrentAssets() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Current Assets")
 }
 
-func (f *filing) DeferredRevenue() (float64, error) {
+func (f *Report) DeferredRevenue() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Deferred") {
 			return f.FinData.Bs.Deferred, nil
@@ -158,7 +152,7 @@ func (f *filing) DeferredRevenue() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Deferred Revenue")
 }
 
-func (f *filing) RetainedEarnings() (float64, error) {
+func (f *Report) RetainedEarnings() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Retained") {
 			return f.FinData.Bs.Retained, nil
@@ -167,7 +161,7 @@ func (f *filing) RetainedEarnings() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Retained Earnings")
 }
 
-func (f *filing) OperatingCashFlow() (float64, error) {
+func (f *Report) OperatingCashFlow() (float64, error) {
 	if f.FinData != nil && f.FinData.Cf != nil {
 		if isCollectedDataSet(f.FinData.Cf, "OpCashFlow") {
 			return f.FinData.Cf.OpCashFlow, nil
@@ -176,7 +170,7 @@ func (f *filing) OperatingCashFlow() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Operating Cash Flow")
 }
 
-func (f *filing) CapitalExpenditure() (float64, error) {
+func (f *Report) CapitalExpenditure() (float64, error) {
 	if f.FinData != nil && f.FinData.Cf != nil {
 		if isCollectedDataSet(f.FinData.Cf, "CapEx") {
 			return f.FinData.Cf.CapEx, nil
@@ -185,7 +179,7 @@ func (f *filing) CapitalExpenditure() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Capital Expenditur")
 }
 
-func (f *filing) Dividend() (float64, error) {
+func (f *Report) Dividend() (float64, error) {
 	if f.FinData != nil && f.FinData.Cf != nil {
 		if isCollectedDataSet(f.FinData.Cf, "Dividends") {
 			// Dividend is recorded as an expense and is -ve. Hence reversing sign
@@ -195,7 +189,7 @@ func (f *filing) Dividend() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Dividend")
 }
 
-func (f *filing) WAShares() (float64, error) {
+func (f *Report) WAShares() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "WAShares") {
 			return f.FinData.Ops.WAShares, nil
@@ -204,7 +198,7 @@ func (f *filing) WAShares() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Weighted Average Shares")
 }
 
-func (f *filing) DividendPerShare() (float64, error) {
+func (f *Report) DividendPerShare() (float64, error) {
 	if f.FinData != nil && f.FinData.Ops != nil {
 		if isCollectedDataSet(f.FinData.Ops, "Dps") {
 			return f.FinData.Ops.Dps, nil
@@ -213,7 +207,7 @@ func (f *filing) DividendPerShare() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Dividend Per Share")
 }
 
-func (f *filing) Interest() (float64, error) {
+func (f *Report) Interest() (float64, error) {
 	if f.FinData != nil && f.FinData.Cf != nil {
 		if isCollectedDataSet(f.FinData.Cf, "Interest") {
 			return f.FinData.Cf.Interest, nil
@@ -222,7 +216,7 @@ func (f *filing) Interest() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Interest paid")
 }
 
-func (f *filing) Cash() (float64, error) {
+func (f *Report) Cash() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Cash") {
 			return f.FinData.Bs.Cash, nil
@@ -231,7 +225,7 @@ func (f *filing) Cash() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Cash")
 }
 
-func (f *filing) Securities() (float64, error) {
+func (f *Report) Securities() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Securities") {
 			return f.FinData.Bs.Securities, nil
@@ -240,7 +234,7 @@ func (f *filing) Securities() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Securities")
 }
 
-func (f *filing) Goodwill() (float64, error) {
+func (f *Report) Goodwill() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Goodwill") {
 			return f.FinData.Bs.Goodwill, nil
@@ -249,7 +243,7 @@ func (f *filing) Goodwill() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Goodwill")
 }
 
-func (f *filing) Intangibles() (float64, error) {
+func (f *Report) Intangibles() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Intangibles") {
 			return f.FinData.Bs.Intangibles, nil
@@ -258,7 +252,7 @@ func (f *filing) Intangibles() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Intangibles")
 }
 
-func (f *filing) Assets() (float64, error) {
+func (f *Report) Assets() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Assets") {
 			return f.FinData.Bs.Assets, nil
@@ -267,7 +261,7 @@ func (f *filing) Assets() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Total Assets")
 }
 
-func (f *filing) Liabilities() (float64, error) {
+func (f *Report) Liabilities() (float64, error) {
 	if f.FinData != nil && f.FinData.Bs != nil {
 		if isCollectedDataSet(f.FinData.Bs, "Liab") {
 			return f.FinData.Bs.Liab, nil
@@ -276,7 +270,7 @@ func (f *filing) Liabilities() (float64, error) {
 	return 0, errors.New(f.filingErrorString() + "Total Liabilities")
 }
 
-func (f *filing) CollectedData() []string {
+func (f *Report) CollectedData() []string {
 
 	eval := func(data interface{}) []string {
 		var ret []string
