@@ -116,7 +116,12 @@ var (
 	}
 )
 
-func getFinDataTypeFromXBRLTag(key string) string {
+var restrictedTags = map[string]bool{
+	"Namespace Prefix:": false,
+	"Data Type:":        false,
+}
+
+func getFinDataTypeFromXBRLTag(key string) (string, bool) {
 	data, ok := xbrlTags[key]
 	if !ok {
 
@@ -127,10 +132,15 @@ func getFinDataTypeFromXBRLTag(key string) string {
 		if len(splits) == 3 {
 			data, ok = xbrlTags[splits[2]]
 			if ok {
-				return data
+				return data, true
 			}
 		}
-		return unknownDataType
+
+		if _, ok = restrictedTags[key]; ok {
+			return "", false
+		}
+
+		return unknownDataType, true
 	}
-	return data
+	return data, true
 }
