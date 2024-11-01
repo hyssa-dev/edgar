@@ -7,7 +7,7 @@ import (
 )
 
 type fetcher struct {
-	folders map[string]*company
+	folders map[string]*Company
 }
 
 // CompanyFolder creates a new folder and populates it with the filing filing
@@ -60,5 +60,5 @@ func (f *fetcher) CreateFolder(
 
 // NewFilingFetcher creates a new empty filing fetcher
 func NewFilingFetcher() FilingFetcher {
-	return &fetcher{folders: make(map[string]*company)}
+	return &fetcher{folders: make(map[string]*Company)}
 }

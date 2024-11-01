@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func parseCikAndDocID(url string) (string, string) {
+func ParseCikAndDocID(url string) (string, string) {
 	var s1 string
 	var d1, d2, d3, d4 int
 	_, _ = fmt.Sscanf(url, "/cgi-bin/viewer?action=view&cik=%d&accession_number=%d-%d-%d%s", &d1, &d2, &d3, &d4, &s1)
@@ -31,13 +31,13 @@ Assumptions of the parser:
 - Since it is a link the tag will be a hyperlink with a button with the id=interactiveDataBtn
 - The actual link is the href attribute in the "a" token just before the id attribute
 */
-func queryPageParser(page io.Reader, docType FilingType) map[string]string {
+func QueryPageParser(page io.Reader, docType FilingType) map[string]string {
 
 	filingInfo := make(map[string]string)
 
 	z := html.NewTokenizer(page)
 
-	data, err := parseTableRow(z, true)
+	_, data, err := ParseTableRow("query", z, true)
 	for err == nil {
 		//This check for filing type will drop AMEND filings
 		if len(data) == 5 && data[0] == string(docType) {
@@ -47,12 +47,12 @@ func queryPageParser(page io.Reader, docType FilingType) map[string]string {
 				filingInfo[data[3]] = data[1]
 			}
 		}
-		data, err = parseTableRow(z, true)
+		_, data, err = ParseTableRow("query", z, true)
 	}
 	return filingInfo
 }
 
-func cikPageParser(page io.Reader) (string, error) {
+func CikPageParser(page io.Reader) (string, error) {
 	z := html.NewTokenizer(page)
 	token := z.Token()
 	for !(token.Data == "cik" && token.Type == html.StartTagToken) {
@@ -83,7 +83,7 @@ The filing page parser
 - Get the text of the accordian and map the type of the report to the report
 - Create a map of the report to report link
 */
-func filingPageParser(page io.Reader, _ FilingType) map[filingDocType]string {
+func FilingPageParser(page io.Reader, _ FilingType) map[string][]Document {
 	var filingLinks []string
 	r := bufio.NewReader(page)
 	s, e := r.ReadString('\n')
@@ -126,12 +126,11 @@ func filingPageParser(page io.Reader, _ FilingType) map[filingDocType]string {
 
 }
 
-func parseTableData(z *html.Tokenizer, parseHref bool) string {
+func ParseTableData(z *html.Tokenizer, parseHref bool) (string, string) {
 	token := z.Token()
-
 	if token.Type != html.StartTagToken && token.Data != "td" {
 		log.Fatal("Tokenizer passed incorrectly to parseTableData")
-		return ""
+		return "", ""
 	}
 
 	for !(token.Data == "td" && token.Type == html.EndTagToken) {
@@ -140,15 +139,17 @@ func parseTableData(z *html.Tokenizer, parseHref bool) string {
 		}
 
 		if parseHref && token.Data == "a" && token.Type == html.StartTagToken {
-			str := parseHyperLinkTag(z, token)
+			str, _ := ParseHyperLinkTag(z, token)
+			// fmt.Println(way, str)
 			if len(str) > 0 {
-				return str
+				return ParseKeyName(string(z.Buffered())), str
 			}
 		} else {
 			if token.Type == html.TextToken {
 				str := strings.TrimSpace(token.String())
 				if len(str) > 0 {
-					return str
+					// fmt.Println("strings.TrimSpace", len(str), str)
+					return "-1", str
 				}
 			}
 		}
@@ -156,19 +157,21 @@ func parseTableData(z *html.Tokenizer, parseHref bool) string {
 		z.Next()
 		token = z.Token()
 	}
-	return ""
+	return "", ""
 }
 
-func parseTableRow(z *html.Tokenizer, parseHref bool) ([]string, error) {
-	var retData []string
+func ParseTableRow(useCase string, z *html.Tokenizer, parseHref bool) ([]string, []string, error) {
+	var (
+		valueData []string
+		keyData   []string
+	)
 	//Get the current token
 	token := z.Token()
-
 	//Check if this is really a table row
 	for !(token.Type == html.StartTagToken && token.Data == "tr") {
 		tt := z.Next()
 		if tt == html.ErrorToken {
-			return nil, errors.New("Done with parsing")
+			return nil, nil, errors.New("Done with parsing")
 		}
 		token = z.Token()
 	}
@@ -176,7 +179,7 @@ func parseTableRow(z *html.Tokenizer, parseHref bool) ([]string, error) {
 	for !(token.Data == "tr" && token.Type == html.EndTagToken) {
 
 		if token.Type == html.ErrorToken {
-			return nil, errors.New("Done with parsing")
+			return nil, nil, errors.New("Done with parsing")
 		}
 		if token.Data == "td" && token.Type == html.StartTagToken {
 			parseFlag := parseHref
@@ -186,27 +189,45 @@ func parseTableRow(z *html.Tokenizer, parseHref bool) ([]string, error) {
 					parseFlag = false
 				}
 			}
-			str := parseTableData(z, parseFlag)
+			key, str := ParseTableData(z, parseFlag)
+
+			// if key != "-1" && str != "" {
+			// 	fmt.Println("-----------------------------------------------------------")
+			// }
+
+			// if str != "" {
+			// 	fmt.Println(key, str)
+			// }
+			// if key != "-1" && str != "" {
+			// 	fmt.Println()
+			// 	fmt.Println("-----------------------------------------------------------")
+			// }
 			if len(str) > 0 {
-				retData = append(retData, str)
+				valueData = append(valueData, str)
+				if key != "-1" {
+					keyData = append(keyData, key)
+				}
 			}
 		}
 		z.Next()
 		token = z.Token()
 	}
-
-	return retData, nil
+	// fmt.Println("rowData", len(valueData), valueData)
+	return keyData, valueData, nil
 }
 
 var reqHyperLinks = map[string]bool{
 	"interactiveDataBtn": true,
 }
 
-func parseHyperLinkTag(z *html.Tokenizer, token html.Token) string {
+func ParseHyperLinkTag(z *html.Tokenizer, token html.Token) (string, string) {
+	// fmt.Println(token.String(), "---------------------------------------------------")
+	// fmt.Println(string(z.Buffered()), z.Token(), string(z.Text()))
+	// fmt.Println(token.String(), "---------------------------------------------------")
+	// fmt.Scanln()
 	var href string
 	var onclick string
 	var id string
-
 	for _, a := range token.Attr {
 		switch a.Key {
 		case "id":
@@ -216,7 +237,7 @@ func parseHyperLinkTag(z *html.Tokenizer, token html.Token) string {
 		case "onclick":
 			onclick = a.Val
 			if str, err := getFinDataXBRLTag(onclick); err == nil {
-				return str
+				return str, "onclick"
 			}
 		}
 	}
@@ -237,14 +258,14 @@ func parseHyperLinkTag(z *html.Tokenizer, token html.Token) string {
 	}
 
 	if _, ok := reqHyperLinks[id]; ok {
-		return href
+		return href, "href"
 	}
 
-	return text
+	return text, "text"
 }
 
-func parseTableTitle(z *html.Tokenizer) []string {
-
+func ParseTableTitle(z *html.Tokenizer) []string {
+	// fmt.Println("zzzzzzzzzz", string(z.Buffered()))
 	var strs []string
 	token := z.Token()
 
@@ -257,7 +278,6 @@ func parseTableTitle(z *html.Tokenizer) []string {
 		if token.Type == html.ErrorToken {
 			break
 		}
-
 		if token.Type == html.TextToken {
 			str := strings.TrimSpace(token.String())
 			if len(str) > 0 {
@@ -271,7 +291,7 @@ func parseTableTitle(z *html.Tokenizer) []string {
 	return strs
 }
 
-func parseTableHeading(z *html.Tokenizer) ([]string, error) {
+func ParseTableHeading(z *html.Tokenizer) ([]string, error) {
 	var retData []string
 	//Get the current token
 	token := z.Token()
@@ -292,7 +312,7 @@ func parseTableHeading(z *html.Tokenizer) ([]string, error) {
 			return nil, errors.New("Done with parsing")
 		}
 		if token.Data == "th" && token.Type == html.StartTagToken {
-			str := parseTableTitle(z)
+			str := ParseTableTitle(z)
 			if len(str) > 0 {
 				retData = append(retData, str...)
 			}
@@ -304,15 +324,28 @@ func parseTableHeading(z *html.Tokenizer) ([]string, error) {
 	return retData, nil
 }
 
-func parseFilingScale(z *html.Tokenizer, t filingDocType) map[scaleEntity]scaleFactor {
-	scales := make(map[scaleEntity]scaleFactor)
-	data, err := parseTableHeading(z)
+func ParseFilingScale(z *html.Tokenizer, docType string) (map[unitEntity]unit, []string, []string) {
+	scales := make(map[unitEntity]unit)
+	data, err := ParseTableHeading(z)
+	z.Next()
 	if err == nil {
 		if len(data) > 0 {
-			scales = filingScale(data, t)
+			scales = filingScale(data, docType)
 		}
 	}
-	return scales
+	periods, err := ParseTableHeading(z)
+	if err == nil {
+		if len(periods) > 0 {
+			endDayes := 0
+			for _, d := range data {
+				if strings.Contains(d, "Months Ended") {
+					endDayes += 1
+				}
+			}
+			periods = periods[:len(data[endDayes:])]
+		}
+	}
+	return scales, data, periods
 }
 
 /*
@@ -323,37 +356,97 @@ func parseFilingScale(z *html.Tokenizer, t filingDocType) map[scaleEntity]scaleF
 	that field
 */
 
-func finReportParser(page io.Reader, fr *financialReport, t filingDocType) (*financialReport, error) {
+func FinReportParser(page io.Reader, fr *FinancialReport, docType string) (*FinancialReport, error) {
+
+	docValue := DocValues{
+		Periods:  []string{},
+		Section:  []Section{},
+		EndDates: []string{},
+		Scales:   map[unitEntity]unit{},
+	}
 
 	z := html.NewTokenizer(page)
-	scales := parseFilingScale(z, t)
-	data, err := parseTableRow(z, true)
+	section := Section{
+		Rows: make([]Row, 0),
+	}
+
+	scales, heading, periods := ParseFilingScale(z, docType)
+	docValue.Scales = scales
+	if len(heading) > 0 {
+		fr.Title = strings.TrimSpace(heading[0])
+		docValue.EndDates = heading[2:]
+	}
+
+	if len(periods) > 0 {
+		docValue.Periods = periods
+	}
+
+	keys, values, err := ParseTableRow("fin", z, true)
 	for err == nil {
-		if len(data) > 0 {
-			finType := getFinDataTypeFromXBRLTag(data[0])
-			if finType != finDataUnknown {
-				for _, str := range data[1:] {
+		if len(keys) > 0 && strings.HasPrefix(keys[0], ">") {
+			keys[0] = keys[0][1:]
+			if len(docValue.Section) == 0 {
+				section.Name = keys[0]
+				section.Index = len(docValue.Section)
+				section.Key = values[0]
+			} else {
+				docValue.Section = append(docValue.Section, section)
+				section = Section{
+					Name:  keys[0],
+					Key:   values[0],
+					Index: len(docValue.Section),
+				}
+			}
+		}
+
+		if len(values) > 0 {
+			finType, continu := getFinDataTypeFromXBRLTag(values[0])
+			if !continu {
+				break
+			}
+
+			if len(values) > 1 {
+				section.Rows = append(section.Rows, Row{
+					Index: len(section.Rows),
+					Name: func() string {
+						if len(keys) > 0 {
+							return keys[0]
+						}
+
+						return ""
+					}(),
+					Key:    values[0],
+					Type:   finType,
+					Values: values[1:],
+				})
+				for _, str := range values[1:] {
 					if len(str) > 0 {
-						if setData(fr, finType, str, scales, t) == nil {
+						if setData(fr, finType, str, scales, docType) == nil {
 							break
 						}
 					}
 				}
 			}
 		}
-		data, err = parseTableRow(z, true)
+		keys, values, err = ParseTableRow("fin", z, true)
 	}
+
+	if len(section.Rows) > 0 {
+		docValue.Section = append(docValue.Section, section)
+	}
+	fr.DocValues[docType] = append(fr.DocValues[docType], docValue)
 	return fr, nil
 }
 
 // parseAllReports gets all the reports filed under a given account normalizeNumber
+//
 //nolint:unused // It is used in the parser
-func parseAllReports(cik string, an string) []int {
+func ParseAllReports(cik string, an string) []int {
 	var reports []int
 	url := "https://www.sec.gov/Archives/edgar/data/" + cik + "/" + an + "/"
 	page := getPage(url)
 	z := html.NewTokenizer(page)
-	data, err := parseTableRow(z, false)
+	_, data, err := ParseTableRow("all", z, false)
 	for err == nil {
 		var num int
 		if len(data) > 0 && strings.Contains(data[0], "R") {
@@ -362,7 +455,7 @@ func parseAllReports(cik string, an string) []int {
 				reports = append(reports, num)
 			}
 		}
-		data, err = parseTableRow(z, false)
+		_, data, err = ParseTableRow("all", z, false)
 	}
 	sort.Slice(reports, func(i, j int) bool {
 		return reports[i] < reports[j]
@@ -370,19 +463,40 @@ func parseAllReports(cik string, an string) []int {
 	return reports
 }
 
-func parseMappedReports(docs map[filingDocType]string, docType FilingType) (*financialReport, error) {
+func ParseMappedReports(typeDocs map[string][]Document, filingType FilingType) (*FinancialReport, error) {
 	var wg sync.WaitGroup
-	fr := newFinancialReport(docType)
-	for t, url := range docs {
-		wg.Add(1)
-		go func(url string, fr *financialReport, t filingDocType) {
-			defer wg.Done()
-			page := getPage(url)
-			if page != nil {
-				_, _ = finReportParser(page, fr, t)
-			}
-		}(baseURL+url, fr, t)
+
+	fr := newFinancialReport(filingType)
+	for docType, docs := range typeDocs {
+		fr = fr.newDocValues(docType)
+		for _, doc := range docs {
+			url := baseURL + doc.URL
+			wg.Add(1)
+			go func(url string, fr *FinancialReport, t string) {
+				defer wg.Done()
+				page := getPage(url)
+				if page != nil {
+					_, _ = FinReportParser(page, fr, docType)
+				}
+			}(url, fr, docType)
+		}
 	}
 	wg.Wait()
-	return fr, validateFinancialReport(fr)
+	return fr, nil //validateFinancialReport(fr)
+}
+
+func ParseKeyName(data string) string {
+	if strings.HasPrefix(data, "<strong>") {
+		idx := strings.Index(data, "</strong>")
+		if idx > 0 {
+			return data[7:idx]
+		}
+	} else {
+		idx := strings.Index(data, "<")
+		if idx > 0 {
+			return data[:idx]
+		}
+	}
+
+	return ""
 }

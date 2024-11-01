@@ -1,6 +1,7 @@
 package edgar
 
 import (
+	"errors"
 	"io"
 	"log"
 	"strconv"
@@ -9,93 +10,73 @@ import (
 	"golang.org/x/net/html"
 )
 
-type menuCat string
-
 var (
-	menuCatCover   menuCat = "Cover"
-	menuCatFS      menuCat = "Financial statements"
-	menuCatNFS     menuCat = "Notes to Financial statements"
-	menuCatUnknown menuCat = "Unknown"
+	unknownMenuCat  = "Unknown"
+	unknowdDocType  = "Unknown"
+	unknownDataType = "Unknown"
 )
 
-func getMenuCategory(data string) menuCat {
-	data = strings.ToLower(data)
-	if strings.Contains(data, "financial") && strings.Contains(data, "statement") {
-		if strings.Contains(data, "note") {
-			return menuCatNFS
-		}
-		return menuCatFS
-	} else if strings.Contains(data, "cover") {
-		return menuCatCover
+// This function returns the menu category of the document
+func getMenuCategory(menuCategories []MenuCategory, data string) string {
+	if len(menuCategories) == 0 {
+		menuCategories = MenuCategories
 	}
-	return menuCatUnknown
+
+	data = strings.ToLower(data)
+	// fmt.Println("data", data, "menuCategories", menuCategories)
+	for _, category := range menuCategories {
+		// fmt.Println("category", category, "data", data, "contains", containsAllElements(data, category.Keys), "nonContains", nonContainsAllElements(data, category.NotKeys))
+		if containsAllElements(data, category.Keys) && nonContainsAllElements(data, category.NotKeys) {
+			return category.Name
+		}
+	}
+
+	return unknownMenuCat
 }
 
-func lookupDocType(data string, menu menuCat) filingDocType {
-
+// This function returns the filing type of the document(by the menu category)
+func lookupDocType(data string, menuCategory string, categoryDocs map[string][]Document) (Document, error) {
 	data = strings.ToUpper(data)
 
-	if menu == menuCatCover && strings.Contains(data, "DOCUMENT") &&
-		strings.Contains(data, "ENTITY") {
-		//Entity document
-		return filingDocEN
-	} else if menu == menuCatFS {
-		if strings.Contains(data, "PARENTHETICAL") {
-			//skip this doc
-			return filingDocIg
-		}
-		// Financial statements
-		if strings.Contains(data, "BALANCE SHEET") {
-			//Balance sheet
-			return filingDocBS
-		} else if strings.Contains(data, "FINANCIAL POSITION") {
-			//Balance sheet
-			return filingDocBS
-		} else if strings.Contains(data, "OPERATIONS") {
-			//Operations statement
-			return filingDocOps
-		} else if strings.Contains(data, "INCOME") {
-			//Income statement
-			return filingDocInc
-		} else if strings.Contains(data, "EARNINGS") {
-			//Income statement
-			return filingDocInc
-		} else if strings.Contains(data, "CASH FLOWS") {
-			//Cash flow statement
-			return filingDocCF
-		}
-	} else if menu == menuCatNFS {
-		// Notes to Financial statements
-		if strings.Contains(data, "EARNINGS") && strings.Contains(data, "SHARE") {
-			return filingDocEPSNotes
-		} else if strings.Contains(data, "SHAREHOLDER") && strings.Contains(data, "EQUITY") {
-			return filingDocEquity
-		} else if strings.Contains(data, "DEBT") {
-			return filingDocDebt
+	if len(categoryDocs) == 0 {
+		categoryDocs = CategoryDocs
+	}
+	docs := categoryDocs[menuCategory]
+	for _, doc := range docs {
+		if containsAllElements(data, doc.Keys) && nonContainsAllElements(data, doc.NotKeys) {
+			return doc, nil
 		}
 	}
-	return filingDocIg
+
+	return Document{}, errors.New("not found")
 }
 
-func getMissingDocs(data map[filingDocType]string) string {
-
-	if len(data) >= len(requiredDocTypes) {
+// NEED TO REILIZE THIS FUNCTION: TOOD
+func getMissingDocs(urlByDocType map[string][]Document, requiredDocs []Document) string {
+	if len(requiredDocs) == 0 {
+		requiredDocs = RequiredDocs
+	}
+	// fmt.Println("urlByDocType", urlByDocType)
+	// fmt.Println()
+	// fmt.Println("requiredDocs", requiredDocs)
+	if len(urlByDocType) >= len(requiredDocs) {
 		return ""
 	}
-	var diff []filingDocType
-	for key := range requiredDocTypes {
-		if _, ok := data[key]; !ok {
-			switch key {
-			case filingDocOps:
-				if _, ok := data[filingDocInc]; ok {
+	var diff []string
+	for _, doc := range requiredDocs {
+		if _, ok := urlByDocType[doc.Type]; !ok {
+			switch doc.Type {
+			case "Operations":
+				if _, ok := urlByDocType["Income"]; ok {
 					continue
 				}
-			case filingDocInc:
-				if _, ok := data[filingDocOps]; ok {
+			case "Income":
+				if _, ok := urlByDocType["Operations"]; ok {
 					continue
 				}
 			}
-			diff = append(diff, key)
+			// fmt.Println(doc.Type)
+			diff = append(diff, doc.Type)
 		}
 	}
 	if len(diff) == 0 {
@@ -111,11 +92,11 @@ func getMissingDocs(data map[filingDocType]string) string {
 	return ret
 }
 
-func mapReports(page io.Reader, filingLinks []string) map[filingDocType]string {
+func mapReports(page io.Reader, filingLinks []string) map[string][]Document {
 
-	menuCategory := menuCatUnknown
+	menuCategory := unknownMenuCat
 
-	retData := make(map[filingDocType]string)
+	urlByDocType := make(map[string][]Document)
 
 	z := html.NewTokenizer(page)
 	tt := z.Next()
@@ -133,25 +114,23 @@ loop:
 						break
 					}
 					token = z.Token()
-					docType := lookupDocType(token.String(), menuCategory)
-					if docType != filingDocIg {
-						//Get the report number
-						_, ok := retData[docType]
-						if !ok {
-							retData[docType] = filingLinks[reportNum-1]
-						}
+					doc, errDoc := lookupDocType(token.String(), menuCategory, map[string][]Document{})
+					if errDoc != nil {
+						doc.Type = unknowdDocType
 					}
+					doc.URL = filingLinks[reportNum-1]
+					urlByDocType[doc.Type] = append(urlByDocType[doc.Type], doc)
 				} else if a.Key == "id" && strings.Contains(a.Val, "menu_cat") {
 					// Set the menu level
 					for !(token.Data == "a" && token.Type == html.EndTagToken) {
 						if token.Type == html.TextToken {
 							str := strings.TrimSpace(token.String())
-							menuCategory = getMenuCategory(str)
+							menuCategory = getMenuCategory([]MenuCategory{}, str)
 						}
 						z.Next()
 						token = z.Token()
 					}
-					if menuCategory == menuCatUnknown {
+					if menuCategory == unknownMenuCat {
 						//Gone too far. Menu category 4 is beyond notes of financial statements.
 						//Stop parsing
 						break loop
@@ -161,9 +140,9 @@ loop:
 		}
 		tt = z.Next()
 	}
-	ret := getMissingDocs(retData)
+	ret := getMissingDocs(urlByDocType, []Document{})
 	if ret != "" {
 		log.Println("Did not find the following filing documents: " + ret)
 	}
-	return retData
+	return urlByDocType
 }

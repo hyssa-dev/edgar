@@ -45,32 +45,32 @@ func normalizeNumber(str string) (float64, error) {
 	return 0, errors.New("Error normalizing number")
 }
 
-func filingScale(strs []string, t filingDocType) map[scaleEntity]scaleFactor {
-	ret := make(map[scaleEntity]scaleFactor)
-	if t == filingDocEN {
-		ret[scaleEntityShares] = scaleNone
+func filingScale(strs []string, docType string) map[unitEntity]unit {
+	ret := make(map[unitEntity]unit)
+	if docType == "Entity Info" {
+		ret[unitEntityShares] = unitNone
 	} else {
-		ret[scaleEntityShares] = scaleMillion
+		ret[unitEntityShares] = unitMillion
 	}
-	ret[scaleEntityMoney] = scaleMillion
-	ret[scaleEntityPerShare] = scaleNone
+	ret[unitEntityMoney] = unitMillion
+	ret[unitEntityPerShare] = unitNone
 	for _, str := range strs {
 		s := strings.ToLower(str)
 		parts := strings.Split(s, ",")
 		for _, part := range parts {
 			if strings.Contains(part, "share") {
-				// Share scale
+				// Share unit
 				if strings.Contains(part, "thousand") {
-					ret[scaleEntityShares] = scaleThousand
+					ret[unitEntityShares] = unitThousand
 				} else if strings.Contains(part, "million") {
-					ret[scaleEntityShares] = scaleMillion
+					ret[unitEntityShares] = unitMillion
 				}
 			} else if strings.Contains(part, "$") || strings.Contains(part, "usd") {
-				//Money scale
+				//Money unit
 				if strings.Contains(part, "thousand") {
-					ret[scaleEntityMoney] = scaleThousand
+					ret[unitEntityMoney] = unitThousand
 				} else if strings.Contains(part, "billion") {
-					ret[scaleEntityMoney] = scaleBillion
+					ret[unitEntityMoney] = unitBillion
 				}
 			}
 		}
