@@ -10,15 +10,7 @@ import (
 	"time"
 )
 
-type company struct {
-	sync.Mutex
-	Company     string `json:"Company"`
-	cik         string
-	FilingLinks map[FilingType]map[string]string  `json:"-"`
-	Reports     map[FilingType]map[string]*filing `json:"Financial Reports"`
-}
-
-func (c *company) String() string {
+func (c *Company) String() string {
 	data, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		log.Fatal("Error marshaling Company data")
@@ -26,20 +18,20 @@ func (c *company) String() string {
 	return string(data)
 }
 
-func newCompany(ticker string) *company {
-	return &company{
+func newCompany(ticker string) *Company {
+	return &Company{
 		Company:     ticker,
 		cik:         getCompanyCIK(ticker),
 		FilingLinks: make(map[FilingType]map[string]string),
-		Reports:     make(map[FilingType]map[string]*filing),
+		Reports:     make(map[FilingType]map[string]*Report),
 	}
 }
 
-func (c *company) Ticker() string {
+func (c *Company) Ticker() string {
 	return c.Company
 }
 
-func (c *company) Filing(fileType FilingType, ts time.Time) (Filing, error) {
+func (c *Company) Filing(fileType FilingType, ts time.Time) (Filing, error) {
 	file, ok := c.getReport(fileType, ts)
 	if !ok {
 		link, ok1 := c.getFilingLink(fileType, ts)
@@ -47,9 +39,11 @@ func (c *company) Filing(fileType FilingType, ts time.Time) (Filing, error) {
 			log.Println(c.AvailableFilings(fileType))
 			return nil, errors.New("No filing available for given date " + getDateString(ts))
 		}
-		file = new(filing)
-		var err error
-		file.FinData, err = getFinancialData(link, fileType)
+		file = new(Report)
+
+		resp, err := getFinancialData(link, fileType)
+		file.Documents = resp.Documents
+		file.FinData = resp.FinData
 		if file.FinData != nil {
 			file.Date = Timestamp(ts)
 			file.Company = c.Ticker()
@@ -65,7 +59,7 @@ func (c *company) Filing(fileType FilingType, ts time.Time) (Filing, error) {
 }
 
 // Get multiple filings in parallel
-func (c *company) Filings(fileType FilingType, ts ...time.Time) ([]Filing, error) {
+func (c *Company) Filings(fileType FilingType, ts ...time.Time) ([]Filing, error) {
 	var wg sync.WaitGroup
 	var ret []Filing
 	var retErrors []error
@@ -96,7 +90,7 @@ func (c *company) Filings(fileType FilingType, ts ...time.Time) ([]Filing, error
 	return ret, nil
 }
 
-func (c *company) AddReport(file *filing) {
+func (c *Company) AddReport(file *Report) {
 	t, err := file.Type()
 	if err != nil {
 		log.Fatal("Adding invalid report")
@@ -105,19 +99,19 @@ func (c *company) AddReport(file *filing) {
 	c.Lock()
 	defer c.Unlock()
 	if c.Reports[t] == nil {
-		c.Reports[t] = make(map[string]*filing)
+		c.Reports[t] = make(map[string]*Report)
 	}
 	c.Reports[t][file.Date.String()] = file
 }
 
-func (c *company) getReport(fileType FilingType, ts time.Time) (*filing, bool) {
+func (c *Company) getReport(fileType FilingType, ts time.Time) (*Report, bool) {
 	c.Lock()
 	defer c.Unlock()
 	file, ok := c.Reports[fileType][getDateString(ts)]
 	return file, ok
 }
 
-func (c *company) AvailableFilings(filingType FilingType) []time.Time {
+func (c *Company) AvailableFilings(filingType FilingType) []time.Time {
 	var d []time.Time
 	c.Lock()
 	links := c.FilingLinks[filingType]
@@ -131,25 +125,25 @@ func (c *company) AvailableFilings(filingType FilingType) []time.Time {
 	return d
 }
 
-func (c *company) CIK() string {
+func (c *Company) CIK() string {
 	return c.cik
 }
 
-func (c *company) getFilingLink(fileType FilingType, ts time.Time) (string, bool) {
+func (c *Company) getFilingLink(fileType FilingType, ts time.Time) (string, bool) {
 	c.Lock()
 	defer c.Unlock()
 	link, ok := c.FilingLinks[fileType][getDateString(ts)]
 	return link, ok
 }
 
-func (c *company) addFilingLinks(fileType FilingType, files map[string]string) {
+func (c *Company) addFilingLinks(fileType FilingType, files map[string]string) {
 	c.Lock()
 	defer c.Unlock()
 	c.FilingLinks[fileType] = files
 }
 
 // Save the Company folder into the writer in JSON format
-func (c *company) SaveFolder(w io.Writer) error {
+func (c *Company) SaveFolder(w io.Writer) error {
 	_, err := w.Write([]byte(c.String()))
 	if err != nil {
 		log.Println("Failed to save data")
