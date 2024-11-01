@@ -357,39 +357,44 @@ func ParseFilingScale(z *html.Tokenizer, docType string) (map[unitEntity]unit, [
 */
 
 func FinReportParser(page io.Reader, fr *FinancialReport, docType string) (*FinancialReport, error) {
+
+	docValue := DocValues{
+		Periods:  []string{},
+		Section:  []Section{},
+		EndDates: []string{},
+		Scales:   map[unitEntity]unit{},
+	}
+
 	z := html.NewTokenizer(page)
 	section := Section{
 		Rows: make([]Row, 0),
 	}
 
 	scales, heading, periods := ParseFilingScale(z, docType)
-	fr.DocValues.Scales = scales
+	docValue.Scales = scales
 	if len(heading) > 0 {
-		for _, str := range heading {
-			fmt.Printf("heading-1-------------|%s|\n", str)
-		}
 		fr.Title = strings.TrimSpace(heading[0])
-		fr.DocValues.EndDates = heading[2:]
+		docValue.EndDates = heading[2:]
 	}
 
 	if len(periods) > 0 {
-		fr.DocValues.Periods = periods
+		docValue.Periods = periods
 	}
 
 	keys, values, err := ParseTableRow("fin", z, true)
 	for err == nil {
 		if len(keys) > 0 && strings.HasPrefix(keys[0], ">") {
 			keys[0] = keys[0][1:]
-			if len(fr.DocValues.Section) == 0 {
+			if len(docValue.Section) == 0 {
 				section.Name = keys[0]
-				section.Index = len(fr.DocValues.Section)
+				section.Index = len(docValue.Section)
 				section.Key = values[0]
 			} else {
-				fr.DocValues.Section = append(fr.DocValues.Section, section)
+				docValue.Section = append(docValue.Section, section)
 				section = Section{
 					Name:  keys[0],
 					Key:   values[0],
-					Index: len(fr.DocValues.Section),
+					Index: len(docValue.Section),
 				}
 			}
 		}
@@ -427,8 +432,9 @@ func FinReportParser(page io.Reader, fr *FinancialReport, docType string) (*Fina
 	}
 
 	if len(section.Rows) > 0 {
-		fr.DocValues.Section = append(fr.DocValues.Section, section)
+		docValue.Section = append(docValue.Section, section)
 	}
+	fr.DocValues[docType] = append(fr.DocValues[docType], docValue)
 	return fr, nil
 }
 
@@ -457,10 +463,12 @@ func ParseAllReports(cik string, an string) []int {
 	return reports
 }
 
-func ParseMappedReports(typeDocs map[string][]Document, docType FilingType) (*FinancialReport, error) {
+func ParseMappedReports(typeDocs map[string][]Document, filingType FilingType) (*FinancialReport, error) {
 	var wg sync.WaitGroup
-	fr := newFinancialReport(docType)
+
+	fr := newFinancialReport(filingType)
 	for docType, docs := range typeDocs {
+		fr = fr.newDocValues(docType)
 		for _, doc := range docs {
 			url := baseURL + doc.URL
 			wg.Add(1)
