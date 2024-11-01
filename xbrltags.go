@@ -4,7 +4,6 @@ import (
 	"strings"
 )
 
-
 func getFinDataTypeFromXBRLTag(key string) (string, bool) {
 	data, ok := XBRLTags[key]
 	if !ok {
@@ -16,15 +15,15 @@ func getFinDataTypeFromXBRLTag(key string) (string, bool) {
 		if len(splits) == 3 {
 			data, ok = XBRLTags[splits[2]]
 			if ok {
-				return data, true
+				return data, false
 			}
 		}
 
-		if _, ok = RestrictedTags[key]; ok {
-			return "", false
+		if RestrictedTags[key] {
+			return "", true
 		}
 
-		return unknownDataType, true
+		return unknownDataType, false
 	}
-	return data, true
+	return data, false
 }

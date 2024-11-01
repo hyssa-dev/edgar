@@ -401,7 +401,7 @@ func FinReportParser(page io.Reader, fr *FinancialReport, docType string) (*Fina
 
 		if len(values) > 0 {
 			finType, continu := getFinDataTypeFromXBRLTag(values[0])
-			if !continu {
+			if continu {
 				break
 			}
 
