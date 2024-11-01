@@ -51,7 +51,7 @@ func getCompanyCIK(ticker string) string {
 	url := fmt.Sprintf(cikURL, ticker)
 	r := getPage(url)
 	if r != nil {
-		if cik, err := cikPageParser(r); err == nil {
+		if cik, err := CikPageParser(r); err == nil {
 			return cik
 		}
 	}
@@ -67,7 +67,7 @@ func getFilingLinks(ticker string, fileType FilingType) map[string]string {
 		return nil
 	}
 	defer resp.Close()
-	return queryPageParser(resp, fileType)
+	return QueryPageParser(resp, fileType)
 
 }
 
@@ -75,19 +75,29 @@ func getFilingLinks(ticker string, fileType FilingType) map[string]string {
 // Returns a map:
 // key=Document type ex.Cash flow statement
 // Value = link to that that sheet
-func getFilingDocs(url string, fileType FilingType) map[string]string {
+func getFilingDocs(url string, fileType FilingType) map[string][]Document {
 	url = baseURL + url
 	resp := getPage(url)
 	if resp == nil {
 		return nil
 	}
 	defer resp.Close()
-	return filingPageParser(resp, fileType)
+	return FilingPageParser(resp, fileType)
 }
 
 // getFinancialData gets the data from all the filing docs and places it in
 // a financial report
-func getFinancialData(url string, fileType FilingType) (*financialReport, error) {
+func getFinancialData(url string, fileType FilingType) (*Report, error) {
 	docs := getFilingDocs(url, fileType)
-	return parseMappedReports(docs, fileType)
+	report := Report{
+		Documents: docs,
+	}
+
+	financial, err := ParseMappedReports(docs, fileType)
+	if err != nil {
+		return nil, err
+	}
+	report.FinData = financial
+
+	return &report, nil
 }
