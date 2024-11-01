@@ -26,8 +26,14 @@ func getMenuCategory(menuCategories []MenuCategory, data string) string {
 	// fmt.Println("data", data, "menuCategories", menuCategories)
 	for _, category := range menuCategories {
 		// fmt.Println("category", category, "data", data, "contains", containsAllElements(data, category.Keys), "nonContains", nonContainsAllElements(data, category.NotKeys))
-		if containsAllElements(data, category.Keys) && nonContainsAllElements(data, category.NotKeys) {
-			return category.Name
+		if category.Condition == "all" {
+			if containsAllElements(data, category.Keys) && nonContainsAllElements(data, category.NotKeys) {
+				return category.Name
+			}
+		} else {
+			if containsAnyElement(data, category.Keys) && nonContainsAllElements(data, category.NotKeys) {
+				return category.Name
+			}
 		}
 	}
 
@@ -43,8 +49,14 @@ func lookupDocType(data string, menuCategory string, categoryDocs map[string][]D
 	}
 	docs := categoryDocs[menuCategory]
 	for _, doc := range docs {
-		if containsAllElements(data, doc.Keys) && nonContainsAllElements(data, doc.NotKeys) {
-			return doc, nil
+		if doc.Condition == "all" {
+			if containsAllElements(data, doc.Keys) && nonContainsAllElements(data, doc.NotKeys) {
+				return doc, nil
+			}
+		} else {
+			if containsAnyElement(data, doc.Keys) && nonContainsAllElements(data, doc.NotKeys) {
+				return doc, nil
+			}
 		}
 	}
 
