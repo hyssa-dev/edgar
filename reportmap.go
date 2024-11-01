@@ -17,10 +17,8 @@ var (
 )
 
 // This function returns the menu category of the document
-func getMenuCategory(menuCategories []MenuCategory, data string) string {
-	if len(menuCategories) == 0 {
-		menuCategories = MenuCategories
-	}
+func getMenuCategory(data string) string {
+	menuCategories := MenuCategories
 
 	data = strings.ToLower(data)
 	// fmt.Println("data", data, "menuCategories", menuCategories)
@@ -35,12 +33,11 @@ func getMenuCategory(menuCategories []MenuCategory, data string) string {
 }
 
 // This function returns the filing type of the document(by the menu category)
-func lookupDocType(data string, menuCategory string, categoryDocs map[string][]Document) (Document, error) {
+func lookupDocType(data string, menuCategory string) (Document, error) {
 	data = strings.ToUpper(data)
 
-	if len(categoryDocs) == 0 {
-		categoryDocs = CategoryDocs
-	}
+	categoryDocs := CategoryDocs
+
 	docs := categoryDocs[menuCategory]
 	for _, doc := range docs {
 		if containsAllElements(data, doc.Keys) && nonContainsAllElements(data, doc.NotKeys) {
@@ -52,10 +49,9 @@ func lookupDocType(data string, menuCategory string, categoryDocs map[string][]D
 }
 
 // NEED TO REILIZE THIS FUNCTION: TOOD
-func getMissingDocs(urlByDocType map[string][]Document, requiredDocs []Document) string {
-	if len(requiredDocs) == 0 {
-		requiredDocs = RequiredDocs
-	}
+func getMissingDocs(urlByDocType map[string][]Document) string {
+	requiredDocs := RequiredDocs
+
 	// fmt.Println("urlByDocType", urlByDocType)
 	// fmt.Println()
 	// fmt.Println("requiredDocs", requiredDocs)
@@ -114,7 +110,7 @@ loop:
 						break
 					}
 					token = z.Token()
-					doc, errDoc := lookupDocType(token.String(), menuCategory, map[string][]Document{})
+					doc, errDoc := lookupDocType(token.String(), menuCategory)
 					if errDoc != nil {
 						doc.Type = unknowdDocType
 					}
@@ -125,7 +121,7 @@ loop:
 					for !(token.Data == "a" && token.Type == html.EndTagToken) {
 						if token.Type == html.TextToken {
 							str := strings.TrimSpace(token.String())
-							menuCategory = getMenuCategory([]MenuCategory{}, str)
+							menuCategory = getMenuCategory(str)
 						}
 						z.Next()
 						token = z.Token()
@@ -140,7 +136,7 @@ loop:
 		}
 		tt = z.Next()
 	}
-	ret := getMissingDocs(urlByDocType, []Document{})
+	ret := getMissingDocs(urlByDocType)
 	if ret != "" {
 		log.Println("Did not find the following filing documents: " + ret)
 	}

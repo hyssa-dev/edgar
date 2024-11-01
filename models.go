@@ -3,9 +3,10 @@ package edgar
 import "sync"
 
 type MenuCategory struct {
-	Name    string
-	Keys    []string
-	NotKeys []string
+	Name      string
+	Keys      []string
+	NotKeys   []string
+	Condition string
 }
 
 type Document struct {
@@ -15,6 +16,7 @@ type Document struct {
 	Keys       []string
 	NotKeys    []string
 	URL        string
+	Condition  string
 	IsRequired bool
 }
 

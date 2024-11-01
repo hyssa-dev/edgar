@@ -2,7 +2,6 @@ package edgar
 
 import (
 	"errors"
-	"log"
 	"reflect"
 )
 
@@ -70,7 +69,7 @@ var (
 	// finDataInterest          finDataType = "Interest paid"
 	// finDataUnknown           finDataType = "Unknown"
 	//nolint:unused // It is used in the parser
-	finDataSecurities finDataType = "Securities"
+	// finDataSecurities finDataType = "Securities"
 
 	// Strict Data to doc mapping
 	strictDataToDocMap = map[string]string{
@@ -78,33 +77,33 @@ var (
 	}
 )
 
-func generateData(fin *FinancialReport, name string) float64 {
-	log.Println("Generating data: ", name)
-	switch name {
-	case "GrossMargin":
-		//Do this only when the parsing is complete for required fields
-		if isCollectedDataSet(fin.Ops, "Revenue") && isCollectedDataSet(fin.Ops, "CostOfSales") {
-			log.Println("Generating Gross Margin")
-			return fin.Ops.Revenue - fin.Ops.CostOfSales
-		}
+// func generateData(fin *FinancialReport, name string) float64 {
+// 	log.Println("Generating data: ", name)
+// 	switch name {
+// 	case "GrossMargin":
+// 		//Do this only when the parsing is complete for required fields
+// 		if isCollectedDataSet(fin.Ops, "Revenue") && isCollectedDataSet(fin.Ops, "CostOfSales") {
+// 			log.Println("Generating Gross Margin")
+// 			return fin.Ops.Revenue - fin.Ops.CostOfSales
+// 		}
 
-	case "Dps":
-		if isCollectedDataSet(fin.Cf, "Dividends") {
-			if isCollectedDataSet(fin.Ops, "WAShares") {
-				return round(fin.Cf.Dividends * -1 / fin.Ops.WAShares)
-			} else if isCollectedDataSet(fin.Entity, "ShareCount") {
-				return round(fin.Cf.Dividends * -1 / fin.Entity.ShareCount)
-			}
-		}
-	case "OpExpense":
-		if isCollectedDataSet(fin.Ops, "Revenue") &&
-			isCollectedDataSet(fin.Ops, "CostOfSales") &&
-			isCollectedDataSet(fin.Ops, "OpIncome") {
-			return round(fin.Ops.Revenue - fin.Ops.CostOfSales - fin.Ops.OpIncome)
-		}
-	}
-	return 0
-}
+// 	case "Dps":
+// 		if isCollectedDataSet(fin.Cf, "Dividends") {
+// 			if isCollectedDataSet(fin.Ops, "WAShares") {
+// 				return round(fin.Cf.Dividends * -1 / fin.Ops.WAShares)
+// 			} else if isCollectedDataSet(fin.Entity, "ShareCount") {
+// 				return round(fin.Cf.Dividends * -1 / fin.Entity.ShareCount)
+// 			}
+// 		}
+// 	case "OpExpense":
+// 		if isCollectedDataSet(fin.Ops, "Revenue") &&
+// 			isCollectedDataSet(fin.Ops, "CostOfSales") &&
+// 			isCollectedDataSet(fin.Ops, "OpIncome") {
+// 			return round(fin.Ops.Revenue - fin.Ops.CostOfSales - fin.Ops.OpIncome)
+// 		}
+// 	}
+// 	return 0
+// }
 
 // NEED TO REALIZE THIS FUNCTION
 // func validateFinancialReport(fin *FinancialReport) error {

@@ -62,3 +62,25 @@ func (f *fetcher) CreateFolder(
 func NewFilingFetcher() FilingFetcher {
 	return &fetcher{folders: make(map[string]*Company)}
 }
+
+type InitParams struct {
+	MenuCategories []MenuCategory
+	CategoryDocs   map[string][]Document
+	RequiredDocs   []Document
+	RestrictedTags map[string]bool
+	XBRLTags       map[string]string
+}
+
+func Init(param InitParams) {
+
+	MenuCategories = param.MenuCategories
+
+	CategoryDocs = param.CategoryDocs
+
+	RequiredDocs = param.RequiredDocs
+
+	// RestrictedTags
+	RestrictedTags = param.RestrictedTags
+
+	XBRLTags = param.XBRLTags
+}
